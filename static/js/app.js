@@ -1,283 +1,672 @@
-/* =========================================================
-   DORO LOJİSTİK
-   MAIN JAVASCRIPT
-========================================================= */
-
-"use strict";
-
-
 document.addEventListener("DOMContentLoaded", () => {
 
-    initLoader();
+    /* =========================================
+       LOADING
+    ========================================= */
 
-    initNavbar();
+    const loader = document.getElementById("loader");
 
-    initMobileMenu();
+    function hideLoader() {
+        if (!loader) return;
 
-    initRevealAnimations();
+        setTimeout(() => {
+            loader.classList.add("loader-hidden");
+        }, 700);
+    }
 
-    initCursor();
-
-    initQuoteForm();
-
-    initCurrentYear();
-
-    initVideoFallback();
-
-});
-
-
-/* =========================================================
-   PAGE LOADER
-========================================================= */
-
-function initLoader() {
-
-    const loader =
-        document.getElementById("pageLoader");
-
-    const percent =
-        document.getElementById("loaderPercent");
-
-    const line =
-        loader?.querySelector(".loader-line span");
-
-
-    if (!loader) {
-        return;
+    if (document.readyState === "complete") {
+        hideLoader();
+    } else {
+        window.addEventListener("load", hideLoader, {
+            once: true
+        });
     }
 
 
-    let progress = 0;
+    /* =========================================
+       HEADER
+    ========================================= */
 
-    const interval =
-        setInterval(() => {
+    const header =
+        document.querySelector(".site-header");
 
-            const increment =
-                Math.random() * 8 + 3;
+    function updateHeader() {
 
-            progress =
-                Math.min(
-                    progress + increment,
-                    96
-                );
+        if (!header) return;
 
-
-            if (percent) {
-                percent.textContent =
-                    `${Math.floor(progress)}%`;
-            }
-
-
-            if (line) {
-                line.style.width =
-                    `${progress}%`;
-            }
-
-        }, 120);
-
-
-    const finishLoader = () => {
-
-        clearInterval(interval);
-
-        progress = 100;
-
-
-        if (percent) {
-            percent.textContent = "100%";
+        if (window.scrollY > 40) {
+            header.classList.add("scrolled");
+        } else {
+            header.classList.remove("scrolled");
         }
+    }
+
+    window.addEventListener(
+        "scroll",
+        updateHeader,
+        { passive: true }
+    );
+
+    updateHeader();
 
 
-        if (line) {
-            line.style.width = "100%";
-        }
+    /* =========================================
+       MOBILE MENU
+    ========================================= */
+
+    const menuButton =
+        document.querySelector(".menu-toggle");
+
+    const mobileMenu =
+        document.querySelector(".mobile-menu");
+
+    if (menuButton && mobileMenu) {
+
+        menuButton.addEventListener("click", () => {
+
+            menuButton.classList.toggle("active");
+
+            mobileMenu.classList.toggle("active");
+
+            document.body.classList.toggle(
+                "menu-open"
+            );
+
+        });
 
 
-        setTimeout(() => {
+        mobileMenu
+            .querySelectorAll("a")
+            .forEach(link => {
 
-            loader.classList.add("loaded");
+                link.addEventListener("click", () => {
 
-            document.body.classList.remove("loading");
+                    menuButton.classList.remove(
+                        "active"
+                    );
 
-        }, 350);
+                    mobileMenu.classList.remove(
+                        "active"
+                    );
 
-    };
+                    document.body.classList.remove(
+                        "menu-open"
+                    );
+
+                });
+
+            });
+    }
 
 
-    if (document.readyState === "complete") {
+    /* =========================================
+       SMOOTH SCROLL
+    ========================================= */
 
-        setTimeout(
-            finishLoader,
-            650
+    document
+        .querySelectorAll('a[href^="#"]')
+        .forEach(link => {
+
+            link.addEventListener(
+                "click",
+                event => {
+
+                    const targetId =
+                        link.getAttribute("href");
+
+                    if (
+                        !targetId ||
+                        targetId === "#"
+                    ) {
+                        return;
+                    }
+
+                    const target =
+                        document.querySelector(
+                            targetId
+                        );
+
+                    if (!target) return;
+
+                    event.preventDefault();
+
+                    const headerHeight =
+                        header
+                            ? header.offsetHeight
+                            : 0;
+
+                    const position =
+                        target.getBoundingClientRect()
+                            .top
+                        +
+                        window.scrollY
+                        -
+                        headerHeight;
+
+                    window.scrollTo({
+                        top: position,
+                        behavior: "smooth"
+                    });
+
+                }
+            );
+
+        });
+
+
+    /* =========================================
+       REVEAL ANIMATIONS
+    ========================================= */
+
+    const revealElements =
+        document.querySelectorAll(
+            ".reveal, .reveal-left, .reveal-right, .scale-reveal"
         );
+
+
+    if (
+        "IntersectionObserver" in window
+    ) {
+
+        const revealObserver =
+            new IntersectionObserver(
+                entries => {
+
+                    entries.forEach(entry => {
+
+                        if (
+                            entry.isIntersecting
+                        ) {
+
+                            entry.target.classList.add(
+                                "revealed"
+                            );
+
+                            revealObserver.unobserve(
+                                entry.target
+                            );
+
+                        }
+
+                    });
+
+                },
+                {
+                    threshold: 0.12,
+                    rootMargin:
+                        "0px 0px -45px 0px"
+                }
+            );
+
+
+        revealElements.forEach(element => {
+            revealObserver.observe(element);
+        });
 
     } else {
 
-        window.addEventListener(
-            "load",
-            () => {
-                setTimeout(
-                    finishLoader,
-                    500
+        revealElements.forEach(element => {
+            element.classList.add(
+                "revealed"
+            );
+        });
+
+    }
+
+
+    /* =========================================
+       COUNTERS
+    ========================================= */
+
+    const counters =
+        document.querySelectorAll(
+            "[data-counter]"
+        );
+
+
+    function animateCounter(element) {
+
+        const target =
+            Number(
+                element.dataset.counter
+            );
+
+        const duration = 1800;
+
+        const startTime =
+            performance.now();
+
+
+        function animate(currentTime) {
+
+            const elapsed =
+                currentTime -
+                startTime;
+
+            const progress =
+                Math.min(
+                    elapsed / duration,
+                    1
                 );
+
+            const eased =
+                1 -
+                Math.pow(
+                    1 - progress,
+                    4
+                );
+
+            const value =
+                Math.floor(
+                    target * eased
+                );
+
+            element.textContent =
+                value.toLocaleString(
+                    "tr-TR"
+                );
+
+
+            if (progress < 1) {
+
+                requestAnimationFrame(
+                    animate
+                );
+
+            } else {
+
+                element.textContent =
+                    target.toLocaleString(
+                        "tr-TR"
+                    );
+
+            }
+
+        }
+
+
+        requestAnimationFrame(
+            animate
+        );
+    }
+
+
+    if (
+        counters.length &&
+        "IntersectionObserver" in window
+    ) {
+
+        const counterObserver =
+            new IntersectionObserver(
+                entries => {
+
+                    entries.forEach(entry => {
+
+                        if (
+                            entry.isIntersecting
+                        ) {
+
+                            animateCounter(
+                                entry.target
+                            );
+
+                            counterObserver.unobserve(
+                                entry.target
+                            );
+
+                        }
+
+                    });
+
+                },
+                {
+                    threshold: 0.65
+                }
+            );
+
+
+        counters.forEach(counter => {
+
+            counterObserver.observe(
+                counter
+            );
+
+        });
+
+    }
+
+
+    /* =========================================
+       HERO VIDEO
+    ========================================= */
+
+    const heroVideo =
+        document.querySelector(
+            ".hero-video"
+        );
+
+
+    if (heroVideo) {
+
+        heroVideo.muted = true;
+
+        const playVideo = () => {
+
+            const promise =
+                heroVideo.play();
+
+            if (
+                promise &&
+                typeof promise.catch ===
+                    "function"
+            ) {
+
+                promise.catch(() => {});
+
+            }
+
+        };
+
+
+        heroVideo.addEventListener(
+            "loadeddata",
+            () => {
+
+                heroVideo.classList.add(
+                    "video-ready"
+                );
+
+                playVideo();
+
             },
             {
                 once: true
             }
         );
 
-    }
 
+        document.addEventListener(
+            "visibilitychange",
+            () => {
 
-    // Güvenlik fallback'i
-    setTimeout(
-        finishLoader,
-        3500
-    );
+                if (
+                    document.visibilityState ===
+                    "visible"
+                ) {
 
-}
+                    playVideo();
 
+                }
 
-/* =========================================================
-   NAVBAR
-========================================================= */
-
-function initNavbar() {
-
-    const navbar =
-        document.getElementById("navbar");
-
-    if (!navbar) {
-        return;
-    }
-
-
-    const updateNavbar =
-        () => {
-
-            if (window.scrollY > 40) {
-                navbar.classList.add("scrolled");
-            } else {
-                navbar.classList.remove("scrolled");
             }
+        );
 
-        };
-
-
-    updateNavbar();
+    }
 
 
-    window.addEventListener(
-        "scroll",
-        updateNavbar,
-        {
-            passive: true
-        }
-    );
+    /* =========================================
+       CARD TILT
+    ========================================= */
 
-
-    const links =
+    const cards =
         document.querySelectorAll(
-            ".nav-link"
+            "[data-tilt]"
         );
 
 
-    const sections =
-        document.querySelectorAll(
-            "main section[id]"
-        );
+    cards.forEach(card => {
+
+        card.addEventListener(
+            "mousemove",
+            event => {
+
+                if (
+                    window.innerWidth < 850
+                ) {
+                    return;
+                }
 
 
-    const observer =
-        new IntersectionObserver(
-            entries => {
-
-                entries.forEach(entry => {
-
-                    if (!entry.isIntersecting) {
-                        return;
-                    }
+                const rect =
+                    card.getBoundingClientRect();
 
 
-                    const id =
-                        entry.target.getAttribute(
-                            "id"
-                        );
+                const x =
+                    event.clientX -
+                    rect.left;
+
+                const y =
+                    event.clientY -
+                    rect.top;
 
 
-                    links.forEach(link => {
+                const centerX =
+                    rect.width / 2;
 
-                        link.classList.toggle(
-                            "active",
-                            link.getAttribute("href") ===
-                            `#${id}`
-                        );
+                const centerY =
+                    rect.height / 2;
 
-                    });
 
-                });
+                const rotateX =
+                    (
+                        (y - centerY) /
+                        centerY
+                    ) * -2;
 
-            },
-            {
-                rootMargin:
-                    "-30% 0px -60% 0px"
+
+                const rotateY =
+                    (
+                        (x - centerX) /
+                        centerX
+                    ) * 2;
+
+
+                card.style.transform =
+                    `
+                    perspective(1000px)
+                    rotateX(${rotateX}deg)
+                    rotateY(${rotateY}deg)
+                    translateY(-4px)
+                    `;
             }
         );
 
 
-    sections.forEach(section => {
+        card.addEventListener(
+            "mouseleave",
+            () => {
 
-        observer.observe(section);
+                card.style.transform =
+                    "";
+
+            }
+        );
 
     });
 
-}
 
+    /* =========================================
+       ACTIVE NAV
+    ========================================= */
 
-/* =========================================================
-   MOBILE MENU
-========================================================= */
-
-function initMobileMenu() {
-
-    const button =
-        document.getElementById(
-            "mobileMenuButton"
+    const sections =
+        document.querySelectorAll(
+            "section[id]"
         );
 
-    const menu =
-        document.getElementById(
-            "mobileMenu"
+    const navLinks =
+        document.querySelectorAll(
+            '.nav-links a[href^="#"]'
         );
 
 
-    if (!button || !menu) {
-        return;
+    if (
+        sections.length &&
+        navLinks.length &&
+        "IntersectionObserver" in window
+    ) {
+
+        const navObserver =
+            new IntersectionObserver(
+                entries => {
+
+                    entries.forEach(entry => {
+
+                        if (
+                            entry.isIntersecting
+                        ) {
+
+                            navLinks.forEach(
+                                link => {
+
+                                    link.classList.remove(
+                                        "active"
+                                    );
+
+                                }
+                            );
+
+
+                            const active =
+                                document.querySelector(
+                                    `.nav-links a[href="#${entry.target.id}"]`
+                                );
+
+
+                            if (active) {
+
+                                active.classList.add(
+                                    "active"
+                                );
+
+                            }
+
+                        }
+
+                    });
+
+                },
+                {
+                    rootMargin:
+                        "-25% 0px -60% 0px"
+                }
+            );
+
+
+        sections.forEach(section => {
+
+            navObserver.observe(
+                section
+            );
+
+        });
+
     }
 
 
-    button.addEventListener(
-        "click",
-        () => {
+    /* =========================================
+       CONTACT FORM
+    ========================================= */
 
-            menu.classList.toggle(
-                "open"
-            );
-
-        }
-    );
+    const form =
+        document.getElementById(
+            "contact-form"
+        );
 
 
-    menu.querySelectorAll("a")
-        .forEach(link => {
+    if (form) {
 
-            link.addEventListener(
-                "click",
+        form.addEventListener(
+            "submit",
+            event => {
+
+                event.preventDefault();
+
+
+                const button =
+                    form.querySelector(
+                        'button[type="submit"]'
+                    );
+
+
+                if (!button) return;
+
+
+                const original =
+                    button.innerHTML;
+
+
+                button.disabled = true;
+
+                button.innerHTML =
+                    "Gönderiliyor...";
+
+
+                setTimeout(() => {
+
+                    button.innerHTML =
+                        "Talep Alındı ✓";
+
+                    button.classList.add(
+                        "success"
+                    );
+
+
+                    form.reset();
+
+
+                    setTimeout(() => {
+
+                        button.innerHTML =
+                            original;
+
+                        button.disabled =
+                            false;
+
+                        button.classList.remove(
+                            "success"
+                        );
+
+                    }, 2500);
+
+                }, 900);
+
+            }
+        );
+
+    }
+
+
+    /* =========================================
+       CURRENT YEAR
+    ========================================= */
+
+    document
+        .querySelectorAll(
+            "[data-current-year]"
+        )
+        .forEach(element => {
+
+            element.textContent =
+                new Date().getFullYear();
+
+        });
+
+
+    /* =========================================
+       IMAGE LOADING
+    ========================================= */
+
+    document
+        .querySelectorAll("img")
+        .forEach(image => {
+
+            image.addEventListener(
+                "error",
                 () => {
 
-                    menu.classList.remove(
-                        "open"
+                    image.classList.add(
+                        "image-error"
                     );
 
                 }
@@ -285,437 +674,4 @@ function initMobileMenu() {
 
         });
 
-}
-
-
-/* =========================================================
-   SCROLL REVEAL
-========================================================= */
-
-function initRevealAnimations() {
-
-    const elements =
-        document.querySelectorAll(
-            ".reveal, .reveal-image"
-        );
-
-
-    if (!elements.length) {
-        return;
-    }
-
-
-    const observer =
-        new IntersectionObserver(
-            entries => {
-
-                entries.forEach(
-                    (entry, index) => {
-
-                        if (
-                            !entry.isIntersecting
-                        ) {
-                            return;
-                        }
-
-
-                        const element =
-                            entry.target;
-
-
-                        const delay =
-                            Math.min(
-                                index * 50,
-                                250
-                            );
-
-
-                        setTimeout(
-                            () => {
-
-                                element.classList.add(
-                                    "visible"
-                                );
-
-                            },
-                            delay
-                        );
-
-
-                        observer.unobserve(
-                            element
-                        );
-
-                    }
-                );
-
-            },
-            {
-                threshold: .12,
-                rootMargin:
-                    "0px 0px -40px 0px"
-            }
-        );
-
-
-    elements.forEach(
-        element => observer.observe(element)
-    );
-
-}
-
-
-/* =========================================================
-   CUSTOM CURSOR
-========================================================= */
-
-function initCursor() {
-
-    const dot =
-        document.getElementById(
-            "cursorDot"
-        );
-
-    const ring =
-        document.getElementById(
-            "cursorRing"
-        );
-
-
-    if (!dot || !ring) {
-        return;
-    }
-
-
-    if (
-        !window.matchMedia(
-            "(pointer: fine)"
-        ).matches
-    ) {
-        return;
-    }
-
-
-    let mouseX = 0;
-    let mouseY = 0;
-
-    let ringX = 0;
-    let ringY = 0;
-
-
-    document.addEventListener(
-        "mousemove",
-        event => {
-
-            mouseX = event.clientX;
-            mouseY = event.clientY;
-
-
-            dot.style.left =
-                `${mouseX}px`;
-
-            dot.style.top =
-                `${mouseY}px`;
-
-        }
-    );
-
-
-    const animate =
-        () => {
-
-            ringX +=
-                (mouseX - ringX) * .16;
-
-            ringY +=
-                (mouseY - ringY) * .16;
-
-
-            ring.style.left =
-                `${ringX}px`;
-
-            ring.style.top =
-                `${ringY}px`;
-
-
-            requestAnimationFrame(
-                animate
-            );
-
-        };
-
-
-    animate();
-
-
-    document.querySelectorAll(
-        "a, button, input, select"
-    ).forEach(
-        element => {
-
-            element.addEventListener(
-                "mouseenter",
-                () => {
-
-                    ring.style.width =
-                        "50px";
-
-                    ring.style.height =
-                        "50px";
-
-                    ring.style.background =
-                        "rgba(239,123,34,.08)";
-
-                }
-            );
-
-
-            element.addEventListener(
-                "mouseleave",
-                () => {
-
-                    ring.style.width =
-                        "34px";
-
-                    ring.style.height =
-                        "34px";
-
-                    ring.style.background =
-                        "transparent";
-
-                }
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   QUOTE FORM
-========================================================= */
-
-function initQuoteForm() {
-
-    const form =
-        document.getElementById(
-            "quoteForm"
-        );
-
-    const button =
-        document.getElementById(
-            "quoteSubmit"
-        );
-
-    const result =
-        document.getElementById(
-            "quoteResult"
-        );
-
-
-    if (!form || !button || !result) {
-        return;
-    }
-
-
-    form.addEventListener(
-        "submit",
-        async event => {
-
-            event.preventDefault();
-
-
-            if (!form.checkValidity()) {
-
-                form.reportValidity();
-
-                return;
-
-            }
-
-
-            button.classList.add(
-                "loading"
-            );
-
-
-            result.classList.remove(
-                "show"
-            );
-
-
-            const formData =
-                new FormData(form);
-
-
-            const payload =
-                Object.fromEntries(
-                    formData.entries()
-                );
-
-
-            try {
-
-                const response =
-                    await fetch(
-                        "/api/quote",
-                        {
-                            method: "POST",
-
-                            headers: {
-                                "Content-Type":
-                                    "application/json"
-                            },
-
-                            body:
-                                JSON.stringify(
-                                    payload
-                                )
-                        }
-                    );
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
-                    throw new Error(
-                        data.message ||
-                        "İstek gönderilemedi."
-                    );
-                }
-
-
-                result.innerHTML = `
-                    <strong>Talebiniz oluşturuldu.</strong><br>
-                    Talep numaranız:
-                    <strong>${escapeHtml(data.request_id)}</strong>
-                    <br>
-                    Ekibimiz tarafından değerlendirilmek üzere
-                    kaydınız oluşturuldu.
-                `;
-
-
-                result.classList.add(
-                    "show"
-                );
-
-
-                form.reset();
-
-
-                result.scrollIntoView({
-                    behavior: "smooth",
-                    block: "center"
-                });
-
-
-            } catch (error) {
-
-                result.innerHTML = `
-                    <strong>Bir sorun oluştu.</strong><br>
-                    ${escapeHtml(
-                        error.message ||
-                        "Lütfen tekrar deneyin."
-                    )}
-                `;
-
-
-                result.classList.add(
-                    "show"
-                );
-
-            } finally {
-
-                button.classList.remove(
-                    "loading"
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   VIDEO
-========================================================= */
-
-function initVideoFallback() {
-
-    const video =
-        document.querySelector(
-            ".hero-video video"
-        );
-
-
-    if (!video) {
-        return;
-    }
-
-
-    video.addEventListener(
-        "error",
-        () => {
-
-            const wrapper =
-                document.querySelector(
-                    ".hero-video"
-                );
-
-
-            if (!wrapper) {
-                return;
-            }
-
-
-            wrapper.style.background =
-                "url('/static/images/tir-2.jpg') center / cover no-repeat";
-
-        }
-    );
-
-}
-
-
-/* =========================================================
-   CURRENT YEAR
-========================================================= */
-
-function initCurrentYear() {
-
-    const element =
-        document.getElementById(
-            "currentYear"
-        );
-
-
-    if (!element) {
-        return;
-    }
-
-
-    element.textContent =
-        new Date().getFullYear();
-
-}
-
-
-/* =========================================================
-   HTML ESCAPE
-========================================================= */
-
-function escapeHtml(value) {
-
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-
-}// Doro Lojistik - Main JavaScript
+});
